@@ -1,45 +1,52 @@
-const axios = require("axios");
-const cheerio = require("cheerio");
+const util = require('./util.js');
+const extention = require('./ext/main.js')
 
-let urls = ["https://www.tokyopop.de/kalender/"];
+/* kaze(https://www.kaze-online.de/news/artikel/manga-vorschau-januar-2021/)
+has to spoof array with months like altraverse
+has no images in list
+has prices (extra fetch with images together)
+has name and Vol number with prefix but has extra on back ((auch als E-Book))
+*/
 
-    async function test() {
-      let links = [];
-      await axios.get(urls[0]).then(response => {
-        const $ = cheerio.load(response.data);
-        const urlElems = $("div.framemenu--list");
-        const nextelm = $(urlElems).find("div.framemenu--list-item")
+/* altraverse(https://altraverse.de/termine/)
+fetch all news links or make array for months (https://altraverse.de/termine/{monthname}-neuheiten)
+has no images in list (extra fetch or ignore)
+has prices
+has name and Vol number with prefix same as tokyopop
+*/
 
-        for (let i = 0; i < (nextelm.length - 1); i++) {
-          links.push($(nextelm[i]).find("a")[0].attribs.href)
-          }
+/* mangacult(https://www.cross-cult.de/id-2021.html)
+whole list of one year in one page
+has no images in list (extra fetch or ignore)
+has prices
+has name and Vol number no Prefix
+*/
 
-        })
-        linktest(links)
-        }
+/* carlsenmanga(https://www.carlsen.de/manga/monatsuebersicht)
+only has 15 manga on display (has to fetch links first)
+has images
+has prices
+has name and Vol number no Prefix
+*/
 
-      test()
+/* egmont(https://www.egmont-shop.de/manga/?PublicationYear=2021&collapsedFacets=&maxPrice=31&minPrice=0&orderOption=0&pageNumber=1)
 
-      async function linktest(links) {
-        let data = {}
-        /*links.forEach(url => {
-          console.log(url)
-        })*/
-      await axios.get(links[0]).then(response => {
-        const $ = cheerio.load(response.data);
-        const urlElems = $("div.listing");
-        const nextelm = $(urlElems).find("div.product--box")
-        for (let i = 0; i < (nextelm.length); i++) {
-          let mainimgcont = $(nextelm[i]).find("span.image--media")[0]
-          let imgs = $(mainimgcont).find("img")[0].attribs.srcset
-          let titles = $(nextelm[i]).find("a.product--title")[0].attribs.title
-          let pricecont = $(nextelm[i]).find("span.price--default")[0]
-          let price = $(pricecont).text().replace(/(\r\n|\n|\r|\*)/gm,"")
+change year auto maybe?
+pageNumber == (Max Manga / 30)
+has images
+has prices
+has name and Vol number no Prefix
+*/
 
-          console.log(price)
-         // console.log($(nextelm[i]).find("a")[0].attribs.href))
-          }
+let urls = {"tokyopop": "https://www.tokyopop.de/kalender/", "kaze": "https://www.kaze-online.de/news/artikel/manga-vorschau-januar-2021/", "altraverse": "https://altraverse.de/termine/", "mangacult": "https://www.cross-cult.de/id-2021.html", "carlsenmanga": "https://www.carlsen.de/manga/monatsuebersicht", "egmont": "https://www.egmont-shop.de/manga/?PublicationYear=2021&collapsedFacets=&maxPrice=31&minPrice=0&orderOption=0&pageNumber=1"}
 
-        })
-        //linktest(links)
-      }
+async function start() {
+for (let i = 0; i < (/*Object.keys(urls).length*/1); i++) {
+let bookdb = await util.loadjson(Object.keys(urls)[i])
+let getdata = await extention.sorter(bookdb, urls[Object.keys(urls)[i]], Object.keys(urls)[i]);
+if (getdata.undefinedcounter != 0) {
+    await util.writejson(getdata.bookdb, getdata.dbname)
+  }
+}
+}
+start()
